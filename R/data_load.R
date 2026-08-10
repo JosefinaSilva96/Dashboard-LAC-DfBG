@@ -49,7 +49,13 @@ load_mis <- function(path = DATA_PATH) {
 
   main <- haven::read_dta(f_main) |>
     decode_labelled() |>
-    janitor::clean_names() |>
+    janitor::clean_names()
+
+  # El .dta ya trae una columna calculada llamada "mis" (no confundir con
+  # nuestro q2, que es el TIPO de módulo MIS). La renombramos para no pisarla.
+  if ("mis" %in% names(main)) main <- main |> rename(mis_flag_raw = mis)
+
+  main <- main |>
     rename(country = q1, mis = q2) |>
     filter(!is.na(country), !is.na(mis))
 
