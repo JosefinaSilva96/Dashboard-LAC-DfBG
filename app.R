@@ -11,14 +11,14 @@ library(shiny)
 library(bslib)
 library(dplyr)
 
-#source("data_load.R")
-#source("question_dictionary.R")
-#source("module_metadata.R")
-#source("global_stats.R")
-#source("plots.R")
-#source("build_brief.R")
-#source("translations_static.R")
-#if (file.exists("llm_narrative.R")) source("llm_narrative.R")
+source("data_load.R")
+source("question_dictionary.R")
+source("module_metadata.R")
+source("global_stats.R")
+source("plots.R")
+source("build_brief.R")
+source("translations_static.R")
+if (file.exists("llm_narrative.R")) source("llm_narrative.R")
 
 DATA <- load_mis()
 
@@ -80,8 +80,8 @@ server <- function(input, output, session) {
   })
 
   section_plots <- function(qids) {
-    req(input$country, input$mis)
     renderUI({
+      req(input$country, input$mis)
       plots <- lapply(qids, function(qid) {
         if (is.null(MIS_QUESTIONS[[qid]])) return(NULL)
         p <- tryCatch(
