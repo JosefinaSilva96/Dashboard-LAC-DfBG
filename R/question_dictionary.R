@@ -240,3 +240,50 @@ mis_questions_ordered <- function() {
   c("q8","q9","q11","q12","q13","q14","q15","q16","q19","q20",
     "q21","q22","q23","q24","q25","q26","q28")
 }
+
+# =============================================================================
+# CAP_QUESTIONS — cuestionario "Capabilities/Capacidades" (indcap_data.dta)
+# -----------------------------------------------------------------------------
+# A diferencia de MIS_QUESTIONS, este cuestionario NO tiene dimensión de
+# módulo: una fila por país (16 países respondieron). Es el análogo al
+# cuestionario "Agency" del dashboard DfBG original: preguntas de nivel
+# institucional/país sobre capacidades analíticas de la administración
+# pública, no de un sistema MIS particular.
+# =============================================================================
+
+CAP_QUESTIONS <- list(
+  q7 = list(
+    id = "q7", section = "Capabilities",
+    title = "Is there a dedicated career track in the government specifically designed for data analytics?",
+    short = "Dedicated career track", type = "single", cols = "q7",
+    levels = c("Yes", "No", "Don\u2019t know", "Prefer not to respond"),
+    palette = PAL_YESNO, in_brief = TRUE
+  ),
+  q8 = list(
+    id = "q8", section = "Capabilities",
+    title = "Are there assessments in the government (e.g., exams, focus groups, surveys) of the analytical skills of public servants?",
+    short = "Skills assessments", type = "single", cols = "q8",
+    levels = c("Yes", "No", "Don\u2019t know", "Prefer not to respond"),
+    palette = PAL_YESNO, in_brief = TRUE
+  ),
+  q9 = list(
+    id = "q9", section = "Capabilities",
+    title = "Is there training in the government that supports data analytics skills among public servants?",
+    short = "Training available", type = "single", cols = "q9",
+    levels = c("Yes", "No", "Don\u2019t know", "Prefer not to respond"),
+    palette = PAL_YESNO, in_brief = TRUE
+  ),
+  q10 = list(
+    id = "q10", section = "Capabilities",
+    title = "Are there initiatives in the government to strengthen the capacity of public servants in using data analytics products for decision-making?",
+    short = "Capacity-building initiatives", type = "single", cols = "q10",
+    levels = c("Yes", "No", "Don\u2019t know", "Prefer not to respond"),
+    palette = PAL_YESNO, in_brief = TRUE
+  )
+)
+
+cap_questions_ordered <- function() c("q7","q8","q9","q10")
+
+# Comentarios de texto libre asociados a cada pregunta de Capabilities
+CAP_COMMENT_COLS <- c(q7 = "q7_comments", q8 = "q8_comments",
+                       q9 = "q9_comments", q10 = "q10_comments")

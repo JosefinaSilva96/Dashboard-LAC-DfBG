@@ -1,12 +1,11 @@
 # =============================================================================
 # plots.R  (MIS Dashboard)
 # -----------------------------------------------------------------------------
-# Mismo motor que el DfBG original (mismo theme, misma lógica de barras
-# horizontales), pero el "scope = compare" ya no es país vs. income group,
-# sino: PAÍS x MÓDULO vs. promedio de TODOS los países que respondieron ese
-# mismo módulo (ponderación 1/n por país, igual que en DfBG). Si más adelante
-# tenemos income groups poblados, es trivial agregar ese filtro también
-# (queda el hook comentado abajo).
+# Motor de gráficos agnóstico del cuestionario: recibe un dataframe YA
+# FILTRADO (una fila por país) + la especificación de la pregunta, y arma la
+# barra "país vs. promedio del grupo". Dos wrappers arriba lo conectan a:
+#   - MIS_QUESTIONS  (allMIS_data_forLAC, filtrado por módulo)
+#   - CAP_QUESTIONS  (indcap_data, sin dimensión de módulo)
 # =============================================================================
 
 library(ggplot2)
@@ -33,13 +32,7 @@ theme_mis <- function(base_size = 12) {
 }
 
 WB_BLUE <- "#002245"
-CAP_TXT <- "Own elaboration based on the LAC Government Analytics Survey (MIS Questionnaires)"
-
-prep_single <- function(df, q) {
-  v <- df[[q$cols[1]]]
-  v <- factor(v, levels = q$levels)
-  v
-}
+CAP_TXT <- "Own elaboration based on the LAC Government Analytics Survey"
 
 default_palette <- function(levels) {
   n <- length(levels)
@@ -48,20 +41,20 @@ default_palette <- function(levels) {
 }
 
 # =============================================================================
-# 1. SINGLE — distribución de una pregunta de opción única
+# Motor genérico — SINGLE (opción única)
+# `d` ya viene filtrado a UNA fila por país (un módulo MIS, o Capabilities
+# entero, que no tiene módulo).
 # =============================================================================
 
-plot_single <- function(data_main, q, country_name, mis_name, scope = "compare") {
-  d <- data_main |> filter(mis == mis_name)
+plot_single_generic <- function(d, q, country_name, title_txt, group_label, scope = "compare") {
   pal <- q$palette %||% default_palette(q$levels)
-  title_txt <- mis_title(q$title, mis_name)
 
   row_c <- d |> filter(country == country_name)
-  val_c <- if (nrow(row_c)) prep_single(row_c, q)[1] else NA
+  val_c <- if (nrow(row_c)) as.character(factor(row_c[[q$cols[1]]][1], levels = q$levels)) else NA
 
   if (scope == "country") {
     df <- tibble::tibble(category = factor(q$levels, levels = q$levels)) |>
-      mutate(value = if_else(category == as.character(val_c), 1, 0))
+      mutate(value = if_else(category == val_c, 1, 0))
     p <- ggplot(df, aes(category, value, fill = category)) +
       geom_col(width = 0.7) +
       scale_fill_manual(values = pal, drop = FALSE, guide = "none") +
@@ -73,8 +66,6 @@ plot_single <- function(data_main, q, country_name, mis_name, scope = "compare")
     return(p)
   }
 
-  # --- promedio LAC para este módulo (ponderado 1/n por país, por si algún
-  # país respondió el módulo más de una vez) ---
   peers <- d |>
     filter(!is.na(.data[[q$cols[1]]])) |>
     mutate(.cat = factor(.data[[q$cols[1]]], levels = q$levels)) |>
@@ -92,7 +83,7 @@ plot_single <- function(data_main, q, country_name, mis_name, scope = "compare")
   df <- tibble::tibble(category = factor(q$levels, levels = q$levels)) |>
     left_join(grp, by = "category") |>
     mutate(pct = tidyr::replace_na(pct, 0),
-           is_country = category == as.character(val_c))
+           is_country = category == val_c)
 
   p <- ggplot(df, aes(category, pct, fill = category)) +
     geom_col(width = 0.7) +
@@ -103,22 +94,19 @@ plot_single <- function(data_main, q, country_name, mis_name, scope = "compare")
     scale_fill_manual(values = pal, drop = FALSE, guide = "none") +
     scale_y_continuous(expand = expansion(mult = c(0, 0.18)), labels = NULL) +
     labs(title = title_txt,
-         subtitle = paste0(country_name, " (\u25c6) vs. LAC average \u2014 ", mis_title("{module}", mis_name)),
+         subtitle = paste0(country_name, " (\u25c6) vs. average \u2014 ", group_label),
          x = NULL, y = NULL, caption = CAP_TXT) +
     coord_flip() + theme_mis()
   p
 }
 
 # =============================================================================
-# 2. MULTI — baterías select_multiple (% que marcó "sí" en cada opción)
+# Motor genérico — MULTI (select_multiple)
 # =============================================================================
 
-plot_multi <- function(data_main, q, country_name, mis_name, scope = "compare") {
-  d <- data_main |> filter(mis == mis_name)
-  title_txt <- mis_title(q$title, mis_name)
+plot_multi_generic <- function(d, q, country_name, title_txt, group_label, scope = "compare") {
   cols <- q$cols[q$cols %in% names(d)]
   opts <- q$options[cols]
-
   to_flag <- function(x) as.numeric(!is.na(x) & x != "" & x != "0")
 
   if (scope == "country") {
@@ -154,17 +142,33 @@ plot_multi <- function(data_main, q, country_name, mis_name, scope = "compare") 
                shape = 23, size = 3.2, fill = "white", color = WB_BLUE, stroke = 1.3) +
     scale_y_continuous(expand = expansion(mult = c(0, 0.2)), labels = NULL) +
     labs(title = title_txt,
-         subtitle = paste0(country_name, " (\u25c6) vs. LAC average \u2014 ", mis_title("{module}", mis_name)),
+         subtitle = paste0(country_name, " (\u25c6) vs. average \u2014 ", group_label),
          x = NULL, y = NULL, caption = CAP_TXT) +
     coord_flip() + theme_mis()
   p
 }
 
-# --- Dispatcher: usa el $type del diccionario para elegir la función --------
+# =============================================================================
+# Wrapper 1 — MIS (filtra por módulo, reemplaza {module} en el título)
+# =============================================================================
+
 plot_question <- function(data_main, qid, country_name, mis_name, scope = "compare") {
   q <- MIS_QUESTIONS[[qid]]
   if (is.null(q)) return(NULL)
-  if (q$type == "single") plot_single(data_main, q, country_name, mis_name, scope)
-  else if (q$type == "multi") plot_multi(data_main, q, country_name, mis_name, scope)
+  d <- data_main |> filter(mis == mis_name)
+  title_txt   <- mis_title(q$title, mis_name)
+  group_label <- mis_short_name(mis_name)
+  if (q$type == "single") plot_single_generic(d, q, country_name, title_txt, group_label, scope)
+  else if (q$type == "multi") plot_multi_generic(d, q, country_name, title_txt, group_label, scope)
   else NULL
+}
+
+# =============================================================================
+# Wrapper 2 — Capabilities (sin módulo, título ya es texto final)
+# =============================================================================
+
+plot_cap_question <- function(data_cap, qid, country_name, scope = "compare") {
+  q <- CAP_QUESTIONS[[qid]]
+  if (is.null(q)) return(NULL)
+  plot_single_generic(data_cap, q, country_name, q$title, "LAC (Capabilities questionnaire)", scope)
 }

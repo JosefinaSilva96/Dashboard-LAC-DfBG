@@ -104,12 +104,25 @@ MIS_TYPES <- c("Human Resources MIS", "Procurement MIS", "Public Financial MIS",
                 "Tax MIS", "Education MIS", "Health MIS")
 
 country_choices <- function(data) {
-  data$main |> filter(!is.na(country)) |> distinct(country) |> arrange(country) |> pull(country)
+  c(data$main$country, data$indcap$country) |>
+    unique() |> (\(x) x[!is.na(x)])() |> sort()
 }
 
 # Módulos MIS respondidos por un país dado
 modules_for_country <- function(data, country_name) {
   data$main |> filter(country == country_name) |> distinct(mis) |> pull(mis)
+}
+
+n_modules_for_country <- function(data, country_name) length(modules_for_country(data, country_name))
+
+has_capabilities <- function(data, country_name) {
+  nrow(data$indcap) > 0 && country_name %in% data$indcap$country
+}
+
+country_income_group <- function(data, country_name) {
+  ig <- data$main |> filter(country == country_name) |> pull(income_group)
+  ig <- ig[!is.na(ig)]
+  if (length(ig)) ig[1] else NA_character_
 }
 
 # Encabezado país x módulo, análogo a country_header() de DfBG
@@ -126,11 +139,10 @@ country_module_header <- function(data, country_name, mis_name) {
 # =============================================================================
 # NOTA sobre indcap_data.dta ("Capabilities/Capacidades")
 # -----------------------------------------------------------------------------
-# Solo 16 filas, 21 columnas (q1, q4, q7-q10 con _comments/_attachments/_dummy).
-# No pude confirmar todavía si la unidad de análisis es país o encuestado, ni
-# el texto completo de q4/q7-q10 (el docx de Capabilities no trae la hoja de
-# choices, igual que le pasaba a module_metadata.R original con Agency
-# q13/q19/q21). Lo dejo cargado y disponible en data$indcap para que lo
-# revisemos juntas antes de wirearlo a module_metadata.R / question_dictionary.R
-# como un 7mo módulo.
+# RESUELTO: es el análogo al cuestionario "Agency" de DfBG — 16 filas, una
+# por país, SIN dimensión de módulo. 4 preguntas (q7-q10, todas Yes/No/DK/PNR)
+# sobre capacidades analíticas del gobierno (carrera profesional dedicada,
+# evaluaciones de habilidades, capacitación, iniciativas de fortalecimiento).
+# Diccionario en CAP_QUESTIONS (question_dictionary.R), gráficos vía
+# plot_cap_question() (plots.R).
 # =============================================================================
