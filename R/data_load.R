@@ -47,7 +47,7 @@ load_mis <- function(path = DATA_PATH) {
 
   if (!file.exists(f_main)) stop("No encuentro ", f_main)
 
-  main <- haven::read_dta(f_main, encoding = "latin1") |>
+  main <- haven::read_dta(f_main) |>
     decode_labelled() |>
     janitor::clean_names() |>
     rename(country = q1, mis = q2) |>
@@ -55,7 +55,7 @@ load_mis <- function(path = DATA_PATH) {
 
   indcap <- tibble::tibble()
   if (file.exists(f_indcap)) {
-    indcap <- haven::read_dta(f_indcap, encoding = "latin1") |>
+    indcap <- haven::read_dta(f_indcap) |>
       decode_labelled() |>
       janitor::clean_names()
     if ("q1" %in% names(indcap)) indcap <- indcap |> rename(country = q1)
