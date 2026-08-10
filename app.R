@@ -111,7 +111,89 @@ server <- function(input, output, session) {
     )
   })
 
-  # --- Explore charts -----------------------------------------------------
+  # --- Gráficos: un reactive() por pregunta (MIS y Capabilities), + un
+  # renderPlot() y un downloadHandler() de PNG fijos por pregunta. Así el
+  # gráfico se calcula una sola vez y se reusa tanto para mostrarlo en
+  # pantalla como para el botón de descarga. -------------------------------
+
+  mis_qids <- mis_questions_ordered()
+  cap_qids <- cap_questions_ordered()
+
+  plot_reactives_mis <- setNames(lapply(mis_qids, function(qid) {
+    reactive({
+      req(input$country, input$questionnaire)
+      if (is_cap()) return(NULL)
+      mods <- modules_for_country(DATA, input$country)
+      if (!(input$questionnaire %in% mods)) return(NULL)
+      tryCatch(
+        plot_question(DATA$main, qid, input$country, input$questionnaire, scope = input$scope %||% "compare"),
+        error = function(e) NULL
+      )
+    })
+  }), mis_qids)
+
+  plot_reactives_cap <- setNames(lapply(cap_qids, function(qid) {
+    reactive({
+      req(input$country)
+      if (!is_cap()) return(NULL)
+      if (!has_capabilities(DATA, input$country)) return(NULL)
+      tryCatch(
+        plot_cap_question(DATA$indcap, qid, input$country, scope = input$scope %||% "compare"),
+        error = function(e) NULL
+      )
+    })
+  }), cap_qids)
+
+  png_filename <- function(qid, prefix) {
+    function() {
+      country_slug <- gsub("[^A-Za-z0-9]+", "_", input$country %||% "country")
+      paste0(country_slug, "_", prefix, "_q", sub("^q", "", qid), ".png")
+    }
+  }
+
+  for (qid in mis_qids) {
+    local({
+      qid_local <- qid
+      output[[paste0("mis_plot_", qid_local)]] <- renderPlot({
+        req(plot_reactives_mis[[qid_local]]())
+      })
+      output[[paste0("mis_dl_", qid_local)]] <- downloadHandler(
+        filename = png_filename(qid_local, "MIS"),
+        content = function(file) {
+          p <- plot_reactives_mis[[qid_local]]()
+          req(p)
+          ggplot2::ggsave(file, plot = p, width = 8, height = 4.5, dpi = 150, bg = "white")
+        }
+      )
+    })
+  }
+
+  for (qid in cap_qids) {
+    local({
+      qid_local <- qid
+      output[[paste0("cap_plot_", qid_local)]] <- renderPlot({
+        req(plot_reactives_cap[[qid_local]]())
+      })
+      output[[paste0("cap_dl_", qid_local)]] <- downloadHandler(
+        filename = png_filename(qid_local, "Capabilities"),
+        content = function(file) {
+          p <- plot_reactives_cap[[qid_local]]()
+          req(p)
+          ggplot2::ggsave(file, plot = p, width = 8, height = 4.5, dpi = 150, bg = "white")
+        }
+      )
+    })
+  }
+
+  # --- Explore charts: arma el layout, referenciando los outputs fijos ----
+
+  plot_block <- function(plot_id, dl_id) {
+    div(class = "mb-2",
+        plotOutput(plot_id, height = 300),
+        downloadButton(dl_id, "Download PNG", class = "btn-sm btn-outline-secondary mt-1 mb-3"),
+        hr()
+    )
+  }
 
   output$explore_charts <- renderUI({
     req(input$country, input$questionnaire)
@@ -121,13 +203,9 @@ server <- function(input, output, session) {
         return(div(class = "text-muted mt-3",
                     em(paste(input$country, "did not answer the Capabilities questionnaire."))))
       }
-      plots <- lapply(cap_questions_ordered(), function(qid) {
-        p <- tryCatch(plot_cap_question(DATA$indcap, qid, input$country, scope = input$scope %||% "compare"),
-                       error = function(e) NULL)
-        if (is.null(p)) return(NULL)
-        tagList(renderPlot(p, height = 300), hr())
-      })
-      return(tagList(plots))
+      return(tagList(lapply(cap_qids, function(qid) {
+        plot_block(paste0("cap_plot_", qid), paste0("cap_dl_", qid))
+      })))
     }
 
     mis_name <- input$questionnaire
@@ -142,10 +220,7 @@ server <- function(input, output, session) {
       tagList(
         h5(sec$section, style = "margin-top: 12px; color:#002245;"),
         lapply(qids, function(qid) {
-          p <- tryCatch(plot_question(DATA$main, qid, input$country, mis_name, scope = input$scope %||% "compare"),
-                         error = function(e) NULL)
-          if (is.null(p)) return(NULL)
-          tagList(renderPlot(p, height = 300), hr())
+          plot_block(paste0("mis_plot_", qid), paste0("mis_dl_", qid))
         })
       )
     }))
@@ -163,7 +238,9 @@ server <- function(input, output, session) {
         col <- CAP_COMMENT_COLS[[qid]]
         txt <- if (col %in% names(row)) row[[col]][1] else NA
         if (is.na(txt) || !nzchar(trimws(txt %||% ""))) return(NULL)
-        tagList(strong(CAP_QUESTIONS[[qid]]$short), p(txt), hr())
+        qnum <- sub("^q", "", qid)
+        label <- paste0(qnum, ". ", CAP_QUESTIONS[[qid]]$title)
+        tagList(strong(label), p(txt), hr())
       })
       return(tagList(blocks))
     }
@@ -174,7 +251,12 @@ server <- function(input, output, session) {
     blocks <- lapply(comment_cols, function(cc) {
       txt <- row[[cc]][1]
       if (is.na(txt) || !nzchar(trimws(txt %||% ""))) return(NULL)
-      tagList(strong(cc), p(txt), hr())
+      qid <- sub("_comments$", "", cc)
+      qnum <- sub("^q", "", qid)
+      qtext <- MIS_QTEXT_ALL[[qid]]
+      label <- if (!is.null(qtext)) paste0(qnum, ". ", mis_title(qtext, input$questionnaire))
+               else cc  # fallback si aparece una columna de comentarios que no mapeamos
+      tagList(strong(label), p(txt), hr())
     })
     if (!any(!vapply(blocks, is.null, logical(1)))) {
       return(div(class = "text-muted", em("No free-text comments for this country/module.")))

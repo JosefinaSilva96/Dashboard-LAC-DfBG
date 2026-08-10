@@ -47,3 +47,16 @@ MIS_QTEXT <- c(
   q26 = "Is there an engagement metric to measure how often data on the {module} is being accessed by government entities?",
   q28 = "Is there a data inventory that lists all available data on the {module}?"
 )
+
+# Preguntas cuyas OPCIONES no están wireadas a MIS_QUESTIONS (falta la hoja
+# choices del XLSForm) pero cuyo TEXTO sí tenemos, para labels en el tab
+# "Text responses" (comentarios libres existen igual aunque no grafiquemos
+# la pregunta en sí).
+MIS_QTEXT_EXTRA <- c(
+  q10 = "What type of government entities, if any, use data analytics products on the {module} to inform decisions?",
+  q17 = "Which of the following data element categories are available on the {module}?",
+  q18 = "Which of the following data element categories are used for producing data analytics products on the {module}?",
+  q27 = "What type of government entities, if any, access data on the {module}?",
+  q29 = "Please provide a comprehensive list of the individuals who contributed to answering the modules on the {module}, including name, position and institution in government, and email"
+)
+MIS_QTEXT_ALL <- c(MIS_QTEXT, MIS_QTEXT_EXTRA)
