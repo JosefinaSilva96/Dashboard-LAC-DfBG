@@ -17,14 +17,14 @@ library(shiny)
 library(bslib)
 library(dplyr)
 
-#source("data_load.R")
-#source("question_dictionary.R")
-#source("module_metadata.R")
-#source("global_stats.R")
-#source("plots.R")
-#source("build_brief.R")
-#source("translations_static.R")
-#if (file.exists("llm_narrative.R")) source("llm_narrative.R")
+source("data_load.R")
+source("question_dictionary.R")
+source("module_metadata.R")
+source("global_stats.R")
+source("plots.R")
+source("build_brief.R")
+source("translations_static.R")
+if (file.exists("llm_narrative.R")) source("llm_narrative.R")
 
 DATA <- load_mis()
 QUESTIONNAIRE_CHOICES <- c(MIS_TYPES, "Capabilities")
@@ -238,9 +238,10 @@ server <- function(input, output, session) {
         col <- CAP_COMMENT_COLS[[qid]]
         txt <- if (col %in% names(row)) row[[col]][1] else NA
         if (is.na(txt) || !nzchar(trimws(txt %||% ""))) return(NULL)
+        txt_en <- if (exists("translate_to_english")) translate_to_english(txt) else txt
         qnum <- sub("^q", "", qid)
         label <- paste0(qnum, ". ", CAP_QUESTIONS[[qid]]$title)
-        tagList(strong(label), p(txt), hr())
+        tagList(strong(label), p(txt_en), hr())
       })
       return(tagList(blocks))
     }
@@ -251,12 +252,13 @@ server <- function(input, output, session) {
     blocks <- lapply(comment_cols, function(cc) {
       txt <- row[[cc]][1]
       if (is.na(txt) || !nzchar(trimws(txt %||% ""))) return(NULL)
+      txt_en <- if (exists("translate_to_english")) translate_to_english(txt) else txt
       qid <- sub("_comments$", "", cc)
       qnum <- sub("^q", "", qid)
       qtext <- MIS_QTEXT_ALL[[qid]]
       label <- if (!is.null(qtext)) paste0(qnum, ". ", mis_title(qtext, input$questionnaire))
                else cc  # fallback si aparece una columna de comentarios que no mapeamos
-      tagList(strong(label), p(txt), hr())
+      tagList(strong(label), p(txt_en), hr())
     })
     if (!any(!vapply(blocks, is.null, logical(1)))) {
       return(div(class = "text-muted", em("No free-text comments for this country/module.")))
