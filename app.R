@@ -17,14 +17,14 @@ library(shiny)
 library(bslib)
 library(dplyr)
 
-#source("data_load.R")
-#source("question_dictionary.R")
-#source("module_metadata.R")
-#source("global_stats.R")
-#source("plots.R")
-#source("build_brief.R")
-#source("translations_static.R")
-#if (file.exists("llm_narrative.R")) source("llm_narrative.R")
+source("data_load.R")
+source("question_dictionary.R")
+source("module_metadata.R")
+source("global_stats.R")
+source("plots.R")
+source("build_brief.R")
+source("translations_static.R")
+if (file.exists("llm_narrative.R")) source("llm_narrative.R")
 
 DATA <- load_mis()
 QUESTIONNAIRE_CHOICES <- c(MIS_TYPES, "Capabilities")
@@ -127,7 +127,11 @@ server <- function(input, output, session) {
       if (!(input$questionnaire %in% mods)) return(NULL)
       tryCatch(
         plot_question(DATA$main, qid, input$country, input$questionnaire, scope = input$scope %||% "compare"),
-        error = function(e) NULL
+        error = function(e) {
+          message("plot_question error [mis, ", qid, ", ", input$country, ", ", input$questionnaire, "]: ",
+                   conditionMessage(e))
+          NULL
+        }
       )
     })
   }), mis_qids)
@@ -139,7 +143,10 @@ server <- function(input, output, session) {
       if (!has_capabilities(DATA, input$country)) return(NULL)
       tryCatch(
         plot_cap_question(DATA$indcap, qid, input$country, scope = input$scope %||% "compare"),
-        error = function(e) NULL
+        error = function(e) {
+          message("plot_cap_question error [", qid, ", ", input$country, "]: ", conditionMessage(e))
+          NULL
+        }
       )
     })
   }), cap_qids)
