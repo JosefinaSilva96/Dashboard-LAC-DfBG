@@ -19,7 +19,7 @@
 # a duplicar trabajo o gastar de más.
 # =============================================================================
 
-source("llm_narrative.R")   # call_claude(), have_api_key()
+source("R/llm_narrative.R")   # call_claude(), have_api_key()
 
 if (!have_api_key()) stop(
   "No hay ANTHROPIC_API_KEY seteada. Corré primero:\n",
@@ -117,7 +117,12 @@ for (i in seq_len(n_chunks)) {
 
   # Guardado incremental por si se corta a mitad de camino
   partial <- rbind(done, do.call(rbind, results))
-  write.csv(partial, out_path, row.names = FALSE, fileEncoding = "UTF-8")
+  # Mismo patrón seguro que en extract_unique_text_responses.R: abrir la
+  # conexión ya en UTF-8 en vez de pasarle fileEncoding a write.csv (evita
+  # el doble encoding "ó" -> "Ã³" en Windows).
+  con <- file(out_path, open = "w", encoding = "UTF-8")
+  write.csv(partial, con, row.names = FALSE)
+  close(con)
 
   Sys.sleep(0.5)
 }

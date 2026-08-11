@@ -33,6 +33,41 @@ DATA_PATH <- file.path("data")
 
 # --- Carga principal -----------------------------------------------------
 
+# El archivo .dta ya viene en UTF-8 para la enorme mayoría del texto (Stata
+# moderno guarda strings en UTF-8), PERO unas pocas celdas tienen bytes
+# inválidos como UTF-8 (probablemente texto pegado desde Word/Excel con una
+# codificación distinta), y esas rompían janitor::clean_names()/sub() más
+# adelante. El fix anterior reinterpretaba TODO el texto como Latin-1, lo
+# cual corrompía el 99% que ya estaba bien (efecto "doble encoding": ó -> Ã³).
+# Este fix es quirúrgico: usa validUTF8() para tocar SOLO las celdas
+# realmente inválidas, dejando intacto todo lo que ya era UTF-8 correcto.
+fix_latin1_encoding <- function(x) {
+  if (is.character(x)) {
+    bad <- !is.na(x) & !validUTF8(x)
+    if (any(bad)) {
+      Encoding(x[bad]) <- "latin1"
+      x[bad] <- enc2utf8(x[bad])
+    }
+    return(x)
+  }
+  if (haven::is.labelled(x)) {
+    labs <- attr(x, "labels")
+    if (!is.null(labs) && !is.null(names(labs))) {
+      nm  <- names(labs)
+      bad <- !is.na(nm) & !validUTF8(nm)
+      if (any(bad)) {
+        Encoding(nm[bad]) <- "latin1"
+        nm[bad] <- enc2utf8(nm[bad])
+        names(labs) <- nm
+        attr(x, "labels") <- labs
+      }
+    }
+  }
+  x
+}
+
+fix_encoding_df <- function(df) df |> mutate(across(everything(), fix_latin1_encoding))
+
 # haven::as_factor() decodifica los value labels de Stata (igual que el
 # "build_dfbg_database" hacía para DfBG) para que el resto del pipeline
 # trabaje siempre con etiquetas legibles, nunca con códigos 1/2/900/998.
@@ -48,6 +83,7 @@ load_mis <- function(path = DATA_PATH) {
   if (!file.exists(f_main)) stop("No encuentro ", f_main)
 
   main <- haven::read_dta(f_main) |>
+    fix_encoding_df() |>
     decode_labelled() |>
     janitor::clean_names()
 
@@ -62,6 +98,7 @@ load_mis <- function(path = DATA_PATH) {
   indcap <- tibble::tibble()
   if (file.exists(f_indcap)) {
     indcap <- haven::read_dta(f_indcap) |>
+      fix_encoding_df() |>
       decode_labelled() |>
       janitor::clean_names()
     if ("q1" %in% names(indcap)) indcap <- indcap |> rename(country = q1)

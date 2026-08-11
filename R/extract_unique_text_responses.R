@@ -12,7 +12,7 @@
 # Después: source("batch_translate_responses.R")  (necesita ANTHROPIC_API_KEY)
 # =============================================================================
 
-source("data_load.R")
+source("R/data_load.R")
 
 DATA <- load_mis()
 
@@ -31,7 +31,13 @@ uniq  <- sort(unique(texts))
 message("Encontradas ", length(uniq), " respuestas de texto únicas.")
 
 out <- data.frame(original_text = uniq, stringsAsFactors = FALSE)
-write.csv(out, file.path("data", "unique_text_responses.csv"),
-          row.names = FALSE, fileEncoding = "UTF-8")
+
+# OJO Windows: write.csv(..., fileEncoding="UTF-8") con strings que YA están
+# marcados como UTF-8 internamente puede terminar escribiendo un doble
+# encoding (ó -> Ã³). El patrón seguro es abrir la conexión ya en UTF-8 y
+# escribir sobre esa conexión, sin pasarle fileEncoding a write.csv.
+con <- file(file.path("data", "unique_text_responses.csv"), open = "w", encoding = "UTF-8")
+write.csv(out, con, row.names = FALSE)
+close(con)
 
 message("Guardado en data/unique_text_responses.csv")
