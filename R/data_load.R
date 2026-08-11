@@ -29,7 +29,15 @@ library(janitor)
 
 DATA_PATH <- file.path("data")
 
-`%||%` <- function(a, b) if (is.null(a) || length(a) == 0 || is.na(a)) b else a
+`%||%` <- function(a, b) {
+  # Ojo: is.na(a) devuelve un VECTOR si `a` tiene largo > 1 (ej. una paleta de
+  # colores con varias entradas), y R moderno ya no permite un vector dentro
+  # de un if(). Por eso el chequeo de NA solo se hace cuando `a` es escalar.
+  if (is.null(a)) return(b)
+  if (length(a) == 0) return(b)
+  if (length(a) == 1 && is.na(a)) return(b)
+  a
+}
 
 # --- Carga principal -----------------------------------------------------
 
