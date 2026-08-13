@@ -58,7 +58,7 @@ ui <- page_fillable(
   ")),
 
   div(class = "d-flex align-items-center", style = "padding: 8px 4px 4px 4px;",
-      h3("AI & Data for Better Governance \u2014 MIS Dashboard", style = "color:#002245; font-weight:600;")
+      h3("Data for Better Governance \u2014 Government Analytics Ecosystems in Latin America Dashboard", style = "color:#002245; font-weight:600;")
   ),
 
   layout_sidebar(
