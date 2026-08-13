@@ -65,7 +65,7 @@ ui <- page_fillable(
     sidebar = sidebar(
       width = 300,
 
-      h5("Economy"),
+      h5("Country"),
       selectInput("country", NULL, choices = country_choices(DATA), selected = country_choices(DATA)[1]),
 
       uiOutput("income_badge"),
