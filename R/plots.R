@@ -83,13 +83,15 @@ plot_single_generic <- function(d, q, country_name, title_txt, group_label, scop
   df <- tibble::tibble(category = factor(q$levels, levels = q$levels)) |>
     left_join(grp, by = "category") |>
     mutate(pct = tidyr::replace_na(pct, 0),
-           is_country = category == val_c)
+           is_country = category == val_c,
+           # Rombo desplazado hacia adentro de la barra para no chocar con el % de afuera
+           diamond_x = pmax(pct - 4, pct * 0.55))
 
   p <- ggplot(df, aes(category, pct, fill = category)) +
     geom_col(width = 0.7) +
     geom_text(aes(label = if_else(pct > 0, paste0(round(pct), "%"), "")),
               hjust = -0.15, size = 3.2) +
-    geom_point(data = df |> filter(is_country), aes(category, pct),
+    geom_point(data = df |> filter(is_country), aes(category, diamond_x),
                shape = 23, size = 3.2, fill = "white", color = WB_BLUE, stroke = 1.3) +
     scale_fill_manual(values = pal, drop = FALSE, guide = "none") +
     scale_y_continuous(expand = expansion(mult = c(0, 0.18)), labels = NULL) +
@@ -133,12 +135,14 @@ plot_multi_generic <- function(d, q, country_name, title_txt, group_label, scope
 
   df <- grp |>
     mutate(option = factor(option, levels = rev(unname(opts[cols]))),
-           is_country = if (!is.null(vals_c)) vals_c[col] == 1 else FALSE)
+           is_country = if (!is.null(vals_c)) vals_c[col] == 1 else FALSE,
+           # Rombo desplazado hacia adentro de la barra para no chocar con el % de afuera
+           diamond_x = pmax(pct - 4, pct * 0.55))
 
   p <- ggplot(df, aes(option, pct)) +
     geom_col(width = 0.6, fill = "#8DC26F") +
     geom_text(aes(label = paste0(round(pct), "%")), hjust = -0.15, size = 3.2) +
-    geom_point(data = df |> filter(is_country), aes(option, pct),
+    geom_point(data = df |> filter(is_country), aes(option, diamond_x),
                shape = 23, size = 3.2, fill = "white", color = WB_BLUE, stroke = 1.3) +
     scale_y_continuous(expand = expansion(mult = c(0, 0.2)), labels = NULL) +
     labs(title = title_txt,
