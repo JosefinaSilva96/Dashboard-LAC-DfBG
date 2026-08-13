@@ -15,7 +15,7 @@ You can read the full report here:
 
 If the dashboard isn't working as expected, please contact:
 
-**AI and Data for Better Governance team**
+**Data for Better Governance team**
 [dataforbettergovernance@worldbank.org](mailto:dataforbettergovernance@worldbank.org)
 
 **Josefina Silva Fuentealba**
