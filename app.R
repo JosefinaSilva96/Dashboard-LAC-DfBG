@@ -40,7 +40,7 @@ includeMarkdown_safe <- function(path) {
 # =============================================================================
 
 ui <- page_fillable(
-  title = "AI & Data for Better Governance \u2014 MIS Dashboard",
+  title = "Data for Better Governance \u2014 Government Analytics Ecosystems in Latin America Dashboard",
   theme = bs_theme(bootswatch = "flatly", primary = "#002245"),
 
   tags$style(HTML("
