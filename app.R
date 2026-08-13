@@ -1,16 +1,16 @@
 # =============================================================================
 # app.R  (MIS Dashboard — LAC Government Analytics Survey)
 # -----------------------------------------------------------------------------
-# Layout calcado del dashboard DfBG original: sidebar (país, income group,
-# contadores de cuestionarios respondidos, botón de descarga de brief,
-# selector de cuestionario) + panel principal con tabs (About / How to use /
+# Layout mirrored from the original DfBG dashboard: sidebar (country, income
+# group, counters of completed questionnaires, brief download button,
+# questionnaire selector) + main panel with tabs (About / How to use /
 # Explore charts / Text responses).
 #
-# "Cuestionario" acá cubre 7 opciones: los 6 módulos MIS (Human Resources,
+# "Questionnaire" here covers 7 options: the 6 MIS modules (Human Resources,
 # Procurement, Public Financial, Tax, Education, Health) + Capabilities
-# (indcap_data, sin dimensión de módulo — análogo a "Agency" en DfBG).
+# (indcap_data, with no module dimension — analogous to "Agency" in DfBG).
 #
-# Correr con:  shiny::runApp()   (desde esta carpeta, con data/ poblada)
+# Run with:  shiny::runApp()   (from this folder, with data/ populated)
 # =============================================================================
 
 library(shiny)
@@ -29,10 +29,10 @@ library(dplyr)
 DATA <- load_mis()
 QUESTIONNAIRE_CHOICES <- c(MIS_TYPES, "Capabilities")
 
-# Helper: si el .md no existe todavía, no rompe la app
+# Helper: if the .md file doesn't exist yet, don't break the app
 includeMarkdown_safe <- function(path) {
   if (file.exists(path)) shiny::includeMarkdown(path)
-  else div(class = "text-muted", em(paste("(", path, "no encontrado todav\u00eda \u2014 falta redactar este texto)")))
+  else div(class = "text-muted", em(paste("(", path, "not found yet \u2014 this text still needs to be written)")))
 }
 
 # =============================================================================
@@ -42,7 +42,7 @@ includeMarkdown_safe <- function(path) {
 ui <- page_fillable(
   title = "AI & Data for Better Governance \u2014 MIS Dashboard",
   theme = bs_theme(bootswatch = "flatly", primary = "#002245"),
-
+  
   tags$style(HTML("
     .nav-tabs .nav-link {
       color: #002245 !important;
@@ -56,38 +56,38 @@ ui <- page_fillable(
       opacity: 0.8;
     }
   ")),
-
+  
   div(class = "d-flex align-items-center", style = "padding: 8px 4px 4px 4px;",
       h3("AI & Data for Better Governance \u2014 MIS Dashboard", style = "color:#002245; font-weight:600;")
   ),
-
+  
   layout_sidebar(
     sidebar = sidebar(
       width = 300,
-
+      
       h5("Economy"),
       selectInput("country", NULL, choices = country_choices(DATA), selected = country_choices(DATA)[1]),
-
+      
       uiOutput("income_badge"),
       uiOutput("count_badges"),
-
+      
       br(),
       downloadButton("download_brief", "Download economy brief (.docx)",
-                      class = "btn-secondary w-100"),
-
+                     class = "btn-secondary w-100"),
+      
       hr(),
       h5("Questionnaire"),
       radioButtons("questionnaire", NULL, choices = QUESTIONNAIRE_CHOICES,
                    selected = QUESTIONNAIRE_CHOICES[1]),
-
+      
       conditionalPanel(
         "input.questionnaire != 'Capabilities'",
         radioButtons("scope", "View", choices = c("Country only" = "country",
-                                                    "vs. LAC average" = "compare"),
+                                                  "vs. LAC average" = "compare"),
                      selected = "compare")
       )
     ),
-
+    
     navset_tab(
       nav_panel("About the survey", includeMarkdown_safe("about_survey.md")),
       nav_panel("How to use this dashboard", includeMarkdown_safe("how_to_use.md")),
@@ -102,11 +102,11 @@ ui <- page_fillable(
 # =============================================================================
 
 server <- function(input, output, session) {
-
+  
   is_cap <- reactive(input$questionnaire == "Capabilities")
-
+  
   # --- Sidebar: badges --------------------------------------------------
-
+  
   output$income_badge <- renderUI({
     req(input$country)
     ig <- country_income_group(DATA, input$country)
@@ -114,7 +114,7 @@ server <- function(input, output, session) {
     div(class = "badge bg-primary mb-2", style = "font-size: 0.85rem; white-space: normal;",
         paste("Income group:", ig))
   })
-
+  
   output$count_badges <- renderUI({
     req(input$country)
     n_mis <- n_modules_for_country(DATA, input$country)
@@ -124,15 +124,15 @@ server <- function(input, output, session) {
       span(class = "badge bg-info text-dark mb-1", paste("Capabilities:", if (has_cap) "Yes" else "No"))
     )
   })
-
-  # --- Gráficos: un reactive() por pregunta (MIS y Capabilities), + un
-  # renderPlot() y un downloadHandler() de PNG fijos por pregunta. Así el
-  # gráfico se calcula una sola vez y se reusa tanto para mostrarlo en
-  # pantalla como para el botón de descarga. -------------------------------
-
+  
+  # --- Charts: one reactive() per question (MIS and Capabilities), plus a
+  # fixed renderPlot() and PNG downloadHandler() per question. This way the
+  # chart is computed only once and reused both to display it on screen
+  # and for the download button. --------------------------------------------
+  
   mis_qids <- mis_questions_ordered()
   cap_qids <- cap_questions_ordered()
-
+  
   plot_reactives_mis <- setNames(lapply(mis_qids, function(qid) {
     reactive({
       req(input$country, input$questionnaire)
@@ -143,13 +143,13 @@ server <- function(input, output, session) {
         plot_question(DATA$main, qid, input$country, input$questionnaire, scope = input$scope %||% "compare"),
         error = function(e) {
           message("plot_question error [mis, ", qid, ", ", input$country, ", ", input$questionnaire, "]: ",
-                   conditionMessage(e))
+                  conditionMessage(e))
           NULL
         }
       )
     })
   }), mis_qids)
-
+  
   plot_reactives_cap <- setNames(lapply(cap_qids, function(qid) {
     reactive({
       req(input$country)
@@ -164,14 +164,14 @@ server <- function(input, output, session) {
       )
     })
   }), cap_qids)
-
+  
   png_filename <- function(qid, prefix) {
     function() {
       country_slug <- gsub("[^A-Za-z0-9]+", "_", input$country %||% "country")
       paste0(country_slug, "_", prefix, "_q", sub("^q", "", qid), ".png")
     }
   }
-
+  
   for (qid in mis_qids) {
     local({
       qid_local <- qid
@@ -188,7 +188,7 @@ server <- function(input, output, session) {
       )
     })
   }
-
+  
   for (qid in cap_qids) {
     local({
       qid_local <- qid
@@ -205,9 +205,9 @@ server <- function(input, output, session) {
       )
     })
   }
-
-  # --- Explore charts: arma el layout, referenciando los outputs fijos ----
-
+  
+  # --- Explore charts: builds the layout, referencing the fixed outputs ---
+  
   plot_block <- function(plot_id, dl_id) {
     div(class = "mb-2",
         plotOutput(plot_id, height = 300),
@@ -215,27 +215,27 @@ server <- function(input, output, session) {
         hr()
     )
   }
-
+  
   output$explore_charts <- renderUI({
     req(input$country, input$questionnaire)
-
+    
     if (is_cap()) {
       if (!has_capabilities(DATA, input$country)) {
         return(div(class = "text-muted mt-3",
-                    em(paste(input$country, "did not answer the Capabilities questionnaire."))))
+                   em(paste(input$country, "did not answer the Capabilities questionnaire."))))
       }
       return(tagList(lapply(cap_qids, function(qid) {
         plot_block(paste0("cap_plot_", qid), paste0("cap_dl_", qid))
       })))
     }
-
+    
     mis_name <- input$questionnaire
     mods <- modules_for_country(DATA, input$country)
     if (!(mis_name %in% mods)) {
       return(div(class = "text-muted mt-3",
-                  em(paste(input$country, "did not answer the", mis_name, "questionnaire."))))
+                 em(paste(input$country, "did not answer the", mis_name, "questionnaire."))))
     }
-
+    
     tagList(lapply(MIS_SECTIONS, function(sec) {
       qids <- sec$qids[sec$qids %in% names(MIS_QUESTIONS)]
       tagList(
@@ -246,12 +246,12 @@ server <- function(input, output, session) {
       )
     }))
   })
-
-  # --- Text responses (comentarios libres) ---------------------------------
-
+  
+  # --- Text responses (free-text comments) -----------------------------------
+  
   output$text_responses <- renderUI({
     req(input$country, input$questionnaire)
-
+    
     if (is_cap()) {
       row <- DATA$indcap |> filter(country == input$country)
       if (!nrow(row)) return(div(class = "text-muted", em("No responses for this country.")))
@@ -266,7 +266,7 @@ server <- function(input, output, session) {
       })
       return(tagList(blocks))
     }
-
+    
     row <- DATA$main |> filter(country == input$country, mis == input$questionnaire)
     if (!nrow(row)) return(div(class = "text-muted", em("No responses for this country/module.")))
     comment_cols <- grep("_comments$", names(row), value = TRUE)
@@ -278,7 +278,7 @@ server <- function(input, output, session) {
       qnum <- sub("^q", "", qid)
       qtext <- MIS_QTEXT_ALL[[qid]]
       label <- if (!is.null(qtext)) paste0(qnum, ". ", mis_title(qtext, input$questionnaire))
-               else cc  # fallback si aparece una columna de comentarios que no mapeamos
+      else cc  # fallback in case a comment column appears that we haven't mapped
       tagList(strong(label), p(txt_en), hr())
     })
     if (!any(!vapply(blocks, is.null, logical(1)))) {
@@ -286,9 +286,9 @@ server <- function(input, output, session) {
     }
     tagList(blocks)
   })
-
-  # --- Download brief -------------------------------------------------------
-
+  
+  # --- Download brief ---------------------------------------------------------
+  
   output$download_brief <- downloadHandler(
     filename = function() paste0(gsub(" ", "_", input$country), "_brief.docx"),
     content = function(file) {
@@ -297,7 +297,7 @@ server <- function(input, output, session) {
           q <- CAP_QUESTIONS[[qid]]
           row <- DATA$indcap |> filter(country == input$country)
           tibble::tibble(question = q$title,
-                          answer = if (nrow(row)) as.character(row[[q$cols[1]]][1]) else "No data")
+                         answer = if (nrow(row)) as.character(row[[q$cols[1]]][1]) else "No data")
         })
         narrative <- paste("Capabilities questionnaire responses for", input$country, "on data analytics capacity-building.")
       } else {
@@ -305,7 +305,7 @@ server <- function(input, output, session) {
           select(question, country_value)
         narrative <- llm_narrative_section(DATA$main, input$country, input$questionnaire)
       }
-
+      
       doc <- officer::read_docx()
       doc <- officer::body_add_par(doc, paste(input$country, "\u2014", input$questionnaire), style = "heading 1")
       doc <- officer::body_add_par(doc, narrative, style = "Normal")
