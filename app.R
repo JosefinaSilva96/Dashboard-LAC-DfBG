@@ -43,6 +43,20 @@ ui <- page_fillable(
   title = "AI & Data for Better Governance \u2014 MIS Dashboard",
   theme = bs_theme(bootswatch = "flatly", primary = "#002245"),
 
+  tags$style(HTML("
+    .nav-tabs .nav-link {
+      color: #002245 !important;
+    }
+    .nav-tabs .nav-link.active {
+      color: #002245 !important;
+      font-weight: 600;
+    }
+    .nav-tabs .nav-link:hover {
+      color: #002245 !important;
+      opacity: 0.8;
+    }
+  ")),
+
   div(class = "d-flex align-items-center", style = "padding: 8px 4px 4px 4px;",
       h3("AI & Data for Better Governance \u2014 MIS Dashboard", style = "color:#002245; font-weight:600;")
   ),
