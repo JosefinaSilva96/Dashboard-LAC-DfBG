@@ -2286,6 +2286,9 @@
     }
   },
   "files": {
+    ".RData": {
+      "checksum": "dc21a23e90b1d2533877024eec64a942"
+    },
     "about_survey.md": {
       "checksum": "fb33fc22147799f50e0b2ed121a46128"
     },
