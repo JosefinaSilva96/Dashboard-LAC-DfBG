@@ -2224,17 +2224,11 @@
     "R/about_survey.md": {
       "checksum": "dc953d6df75667d28651d37de55d57ee"
     },
-    "R/batch_translate_responses.R": {
-      "checksum": "42a6f5139d7652963a13ad1736f8797d"
-    },
     "R/build_brief.R": {
       "checksum": "d3fc3054d41cafc855653463a3682492"
     },
     "R/data_load.R": {
       "checksum": "91538d4765d7b6528013e412cc21d433"
-    },
-    "R/extract_unique_text_responses.R": {
-      "checksum": "e70460a70983d312a67e139eddba0b5b"
     },
     "R/global_stats.R": {
       "checksum": "230524e107f87fc83adab431f6609af0"
