@@ -1,7 +1,7 @@
 ### How to use this dashboard
 
 **1. Select a country**
-Use the **Economy** dropdown in the left sidebar to choose the country you want to explore. All charts and text responses update automatically based on your selection.
+Use the **Country** dropdown in the left sidebar to choose the country you want to explore. All charts and text responses update automatically based on your selection.
 
 **2. Check the country's coverage**
 Below the country selector, two badges summarize what data is available:
