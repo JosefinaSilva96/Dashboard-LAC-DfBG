@@ -16,6 +16,7 @@
 library(shiny)
 library(bslib)
 library(dplyr)
+library(markdown)
 
 #source("data_load.R")
 #source("question_dictionary.R")
